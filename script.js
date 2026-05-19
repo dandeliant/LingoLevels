@@ -1601,6 +1601,7 @@ const tts = {
     const t = getCurrentText();
     if (!t) return;
     speechSynthesis.cancel();
+    karaoke.stop();
     const text = t.levels[state.settings.level] || '';
     const u = new SpeechSynthesisUtterance(text);
     const voiceId = $('#ttsVoice').value;
@@ -1610,13 +1611,18 @@ const tts = {
     u.pitch = parseFloat($('#ttsPitch').value);
     u.lang  = (v && v.lang) || langTag(t.language);
 
-    // Karaoke: highlight word currently being spoken.
+    // Karaoke wiring — we run a timer-based highlighter as the primary mechanism,
+    // because Google's remote voices in Chrome do NOT emit `onboundary` events.
+    // If onboundary DOES fire (system voices), we use it to correct timer drift.
+    u.onstart    = () => karaoke.start(u.rate || 1);
     u.onboundary = (e) => {
       if (e.name && e.name !== 'word') return;
-      karaokeHighlight(e.charIndex);
+      karaoke.syncToChar(e.charIndex);
     };
-    u.onend = () => karaokeClear();
-    u.onerror = () => karaokeClear();
+    u.onpause    = () => karaoke.pause();
+    u.onresume   = () => karaoke.resume(u.rate || 1);
+    u.onend      = () => karaoke.stop();
+    u.onerror    = () => karaoke.stop();
 
     this.utter = u;
     speechSynthesis.speak(u);
@@ -1630,37 +1636,90 @@ const tts = {
     u.lang = (v && v.lang) || langTag(langCode);
     speechSynthesis.speak(u);
   },
-  pause() { if (speechSynthesis.speaking) speechSynthesis.pause(); },
-  stop()  { speechSynthesis.cancel(); karaokeClear(); }
+  pause() { if (speechSynthesis.speaking) { speechSynthesis.pause(); karaoke.pause(); } },
+  stop()  { speechSynthesis.cancel(); karaoke.stop(); }
 };
 
-// ---------- Karaoke (synced TTS highlight) ----------
-let karaokePrev = null;
-function karaokeHighlight(charIndex) {
-  // Find the span whose [start, end) contains charIndex. Binary search the sorted list.
-  const arr = wordSpansByChar;
-  if (!arr.length) return;
-  let lo = 0, hi = arr.length - 1, target = null;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (charIndex < arr[mid].start)      hi = mid - 1;
-    else if (charIndex >= arr[mid].end)  lo = mid + 1;
-    else { target = arr[mid]; break; }
+// ---------- Karaoke (timer-based, with onboundary refinement) ----------
+const karaoke = {
+  index: 0,
+  timer: null,
+  rate: 1,
+  prevSpan: null,
+
+  start(rate) {
+    this.stop();
+    this.rate = rate || 1;
+    if (!wordSpansByChar.length) return;
+    this.index = 0;
+    this._tick();
+  },
+
+  // Schedule the next advance based on the *current* word's character length.
+  _tick() {
+    if (this.index >= wordSpansByChar.length) return;
+    const item = wordSpansByChar[this.index];
+    this._highlight(item.span);
+    // Average TTS pace: ~16 chars/sec at rate 1.0 for European languages.
+    // Per word duration ≈ chars / (16 * rate). Floor at 110 ms so single-letter
+    // words don't blink past unreadable.
+    const chars = item.end - item.start;
+    const ms = Math.max(110, (chars / (16 * this.rate)) * 1000);
+    this.index++;
+    this.timer = setTimeout(() => this._tick(), ms);
+  },
+
+  // Real onboundary event arrived — snap the timer to the correct word so
+  // any drift between estimate and reality gets corrected.
+  syncToChar(charIndex) {
+    const arr = wordSpansByChar;
+    if (!arr.length) return;
+    // Binary search for the span containing charIndex.
+    let lo = 0, hi = arr.length - 1, hit = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (charIndex < arr[mid].start)      hi = mid - 1;
+      else if (charIndex >= arr[mid].end)  lo = mid + 1;
+      else { hit = mid; break; }
+    }
+    if (hit < 0) return;
+    // Cancel the pending tick, jump to the corrected position, schedule from there.
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+    this.index = hit;
+    this._tick();
+  },
+
+  pause() {
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+  },
+
+  resume(rate) {
+    if (rate) this.rate = rate;
+    if (!this.timer && this.index < wordSpansByChar.length) this._tick();
+  },
+
+  stop() {
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+    this.index = 0;
+    this._clearHighlight();
+  },
+
+  _highlight(span) {
+    if (this.prevSpan && this.prevSpan !== span) this.prevSpan.classList.remove('tts-active');
+    span.classList.add('tts-active');
+    this.prevSpan = span;
+    // Keep the active word in view (gently).
+    const rect = span.getBoundingClientRect();
+    const tooHigh = rect.top < 100;
+    const tooLow  = rect.bottom > window.innerHeight - 120;
+    if (tooHigh || tooLow) span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  },
+
+  _clearHighlight() {
+    if (this.prevSpan) this.prevSpan.classList.remove('tts-active');
+    this.prevSpan = null;
   }
-  if (!target) return;
-  if (karaokePrev && karaokePrev !== target.span) karaokePrev.classList.remove('tts-active');
-  target.span.classList.add('tts-active');
-  karaokePrev = target.span;
-  // Keep the active word visible (gentle).
-  const rect = target.span.getBoundingClientRect();
-  const tooHigh = rect.top < 100;
-  const tooLow  = rect.bottom > window.innerHeight - 120;
-  if (tooHigh || tooLow) target.span.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-function karaokeClear() {
-  if (karaokePrev) karaokePrev.classList.remove('tts-active');
-  karaokePrev = null;
-}
+};
 
 function langTag(code) {
   return ({ en: 'en-GB', ru: 'ru-RU', de: 'de-DE', fr: 'fr-FR' })[code] || 'en-GB';

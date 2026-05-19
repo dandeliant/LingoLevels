@@ -727,14 +727,23 @@ body.focus-mode .text-illustration { display: none !important; }
    KARAOKE — TTS-synced highlight
    ============================================================ */
 .word.tts-active {
-  background: linear-gradient(180deg, var(--accent-soft), color-mix(in oklab, var(--accent) 25%, transparent));
-  color: var(--accent);
+  background: var(--gradient);
+  color: #fff;
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-radius: 4px;
-  transform: scale(1.05);
-  transition: all 90ms ease;
-  box-shadow: 0 0 18px var(--accent-glow);
+  outline-offset: 2px;
+  border-radius: 6px;
+  padding: 1px 5px;
+  margin: 0 1px;
+  font-weight: 600;
+  transform: scale(1.08);
+  transition: all 110ms ease;
+  box-shadow: 0 0 24px var(--accent-glow), 0 6px 14px rgba(0,0,0,0.18);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  animation: ttsPulse 1.2s ease-in-out infinite;
+}
+@keyframes ttsPulse {
+  0%, 100% { box-shadow: 0 0 18px var(--accent-glow), 0 6px 14px rgba(0,0,0,0.16); }
+  50%      { box-shadow: 0 0 34px var(--accent-glow), 0 6px 14px rgba(0,0,0,0.20); }
 }
 
 /* ============================================================
