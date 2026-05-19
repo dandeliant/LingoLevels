@@ -1,0 +1,19 @@
+# Claude Code local settings
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node (in case anyone runs node check locally)
+node_modules/
+
+# Logs
+*.log

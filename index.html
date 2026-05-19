@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LingoLevels — Language Learning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="light">
+
+<!-- Top navigation -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">L↑</span>
+    <span class="brand-name">LingoLevels</span>
+  </div>
+
+  <nav class="tabs" id="mainTabs">
+    <button class="tab active" data-view="reader">Czytanie</button>
+    <button class="tab" data-view="vocab">Moje słówka</button>
+    <button class="tab" data-view="dictionary">Słownik</button>
+    <button class="tab" data-view="quizzes">Quizy</button>
+    <button class="tab" data-view="progress">Postępy</button>
+    <button class="tab" data-view="admin">Admin</button>
+  </nav>
+
+  <div class="top-actions">
+    <label class="lang-pick">
+      <span class="lbl">Language</span>
+      <select id="langSelect">
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+      </select>
+    </label>
+    <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+  </div>
+</header>
+
+<!-- Reading progress bar -->
+<div class="progress-track"><div class="progress-fill" id="readProgress"></div></div>
+
+<main id="app">
+
+  <!-- ========== READER VIEW ========== -->
+  <section class="view active" data-view="reader">
+
+    <!-- Browse panel — always visible at top of Reader -->
+    <div class="card browse-panel" id="browsePanel">
+      <header class="section-head">
+        <h2>Wybierz tekst</h2>
+        <input type="search" id="browseSearch" placeholder="Szukaj tytułu..." class="input" style="max-width:280px;" />
+      </header>
+      <div class="filter-chips" id="filterChips"></div>
+      <div id="browseBody"></div>
+    </div>
+
+    <!-- Reading panel — appears once a text is chosen -->
+    <article class="card reading-panel" id="readingPanel">
+      <button class="btn small ghost" id="backToBrowse" style="margin-bottom:0.8rem;">↑ Wróć do wyboru</button>
+      <header class="reader-head">
+        <div>
+          <h2 id="textTitle">—</h2>
+          <div class="meta">
+            <span id="textLangBadge" class="badge">—</span>
+            <span class="badge subtle" id="wordCount">0 words</span>
+            <span class="badge subtle" id="readingTimeBadge" hidden>⏱ —</span>
+            <span class="badge subtle" id="levelMatchBadge" hidden title="% słów które już znasz">📚 —</span>
+          </div>
+        </div>
+        <div class="level-switch" id="levelSwitch">
+          <button data-level="A1">A1</button>
+          <button data-level="A2">A2</button>
+          <button data-level="B1" class="active">B1</button>
+          <button data-level="B2">B2</button>
+          <button data-level="C1">C1</button>
+          <button data-level="C2">C2</button>
+        </div>
+      </header>
+
+        <!-- Illustration (loaded from images/texts/{textId}.{jpg|png|webp}) -->
+        <figure class="text-illustration" id="textIllustration" hidden>
+          <img id="textIllustrationImg" alt="" />
+        </figure>
+
+        <!-- TTS controls -->
+        <div class="tts-bar">
+          <button class="btn primary" id="ttsPlay">▶ Read</button>
+          <button class="btn" id="ttsPause">⏸ Pause</button>
+          <button class="btn" id="ttsStop">⏹ Stop</button>
+          <label>Voice
+            <select id="ttsVoice" class="input"></select>
+          </label>
+          <label>Rate
+            <input type="range" min="0.5" max="1.5" step="0.05" value="1" id="ttsRate" />
+          </label>
+          <label>Pitch
+            <input type="range" min="0.5" max="1.5" step="0.05" value="1" id="ttsPitch" />
+          </label>
+          <span class="spacer"></span>
+          <label class="ckbox"><input type="checkbox" id="focusMode" /> Focus</label>
+          <label class="ckbox"><input type="checkbox" id="bilingualMode" /> Show PL</label>
+          <label class="ckbox"><input type="checkbox" id="hideTranslations" /> Hide translations</label>
+          <button class="btn ghost" id="pronunciationBtn" title="Practice pronunciation sentence by sentence">🎤 Practice</button>
+        </div>
+
+        <!-- Admin uploaded audio per level -->
+        <audio id="adminAudio" controls hidden></audio>
+
+        <!-- Text body (with optional Polish side panel) -->
+        <div class="text-wrap" id="textWrap">
+          <div class="text-body" id="textBody">Select a text from the list.</div>
+          <div class="text-body translation" id="textTranslation" hidden></div>
+        </div>
+
+        <!-- Questions -->
+        <section class="qa-block">
+          <header class="qa-head">
+            <h3>Questions</h3>
+            <div class="qa-tabs">
+              <button class="qa-tab active" data-qtype="tprs">TPRS</button>
+              <button class="qa-tab" data-qtype="comprehension">Reading comprehension</button>
+            </div>
+          </header>
+          <div id="qaContainer"></div>
+        </section>
+    </article>
+  </section>
+
+  <!-- ========== VOCABULARY VIEW ========== -->
+  <section class="view" data-view="vocab">
+    <div class="card">
+      <header class="section-head">
+        <h2>My vocabulary</h2>
+        <span class="badge subtle" id="vocabCount">0 saved</span>
+      </header>
+      <input type="search" id="vocabSearch" placeholder="Search saved words..." class="input wide" />
+      <div class="vocab-list" id="vocabList"></div>
+    </div>
+  </section>
+
+  <!-- ========== DICTIONARY VIEW ========== -->
+  <section class="view" data-view="dictionary">
+    <div class="card">
+      <header class="section-head">
+        <h2>Dictionary</h2>
+        <span class="badge subtle" id="dictCount">0 entries</span>
+      </header>
+      <div class="dict-filters">
+        <input type="search" id="dictSearch" placeholder="Search words & phrases..." class="input" />
+        <select id="dictLangFilter" class="input">
+          <option value="">all languages</option>
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+          <option value="de">Deutsch</option>
+          <option value="fr">Français</option>
+        </select>
+        <select id="dictLevelFilter" class="input">
+          <option value="">all levels</option>
+          <option>A1</option><option>A2</option>
+          <option>B1</option><option>B2</option>
+          <option>C1</option><option>C2</option>
+        </select>
+        <select id="dictPosFilter" class="input">
+          <option value="">all parts of speech</option>
+          <option>noun</option><option>verb</option><option>adjective</option>
+          <option>adverb</option><option>phrase</option><option>idiom</option>
+          <option>preposition</option><option>conjunction</option><option>pronoun</option>
+        </select>
+        <select id="dictStatusFilter" class="input">
+          <option value="">any status</option>
+          <option value="complete">complete</option>
+          <option value="needs review">needs review</option>
+        </select>
+      </div>
+      <div class="dict-list" id="dictList"></div>
+    </div>
+  </section>
+
+  <!-- ========== QUIZZES VIEW ========== -->
+  <section class="view" data-view="quizzes">
+    <div class="card">
+      <header class="section-head">
+        <h2>Quizzes</h2>
+      </header>
+      <div class="quiz-modes">
+        <button class="quiz-mode" data-mode="srs">📚 SRS review <span class="due-pill" id="srsDuePill" hidden></span></button>
+        <button class="quiz-mode" data-mode="cloze">✏️ Cloze (fill the gap)</button>
+        <button class="quiz-mode" data-mode="flashcards">🃏 Flashcards</button>
+        <button class="quiz-mode" data-mode="multiple">🔘 Multiple choice</button>
+        <button class="quiz-mode" data-mode="typing">⌨ Typing</button>
+        <button class="quiz-mode" data-mode="match">🔗 Matching</button>
+      </div>
+      <div id="quizArea" class="quiz-area">
+        <p class="muted">Pick a mode above. Quizzes use words from <strong>My vocabulary</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROGRESS VIEW ========== -->
+  <section class="view" data-view="progress">
+    <div class="card">
+      <header class="section-head">
+        <h2>Progress</h2>
+      </header>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value" id="stStreak">0</div>
+          <div class="stat-label">day streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value" id="stLongest">0</div>
+          <div class="stat-label">longest streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value" id="stFavs">0</div>
+          <div class="stat-label">favourite words</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-value" id="stReviews">0</div>
+          <div class="stat-label">reviews today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-value" id="stEncounters">0</div>
+          <div class="stat-label">word encounters today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-value" id="stDue">0</div>
+          <div class="stat-label">cards due now</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:1.6rem;">Last 14 days</h3>
+      <div class="activity-chart" id="activityChart"></div>
+
+      <h3 style="margin-top:1.6rem;">Ready to test ⭐</h3>
+      <p class="muted">Words you've seen at least <span id="readyThreshold">7</span> times — your brain has the context, time to lock them in.</p>
+      <div class="vocab-list" id="readyList"></div>
+    </div>
+  </section>
+
+  <!-- ========== ADMIN VIEW ========== -->
+  <section class="view" data-view="admin">
+    <div class="card">
+      <header class="section-head">
+        <h2>Admin panel</h2>
+      </header>
+      <nav class="admin-tabs" id="adminTabs">
+        <button class="atab active" data-atab="texts">Texts</button>
+        <button class="atab" data-atab="audio">Audio</button>
+        <button class="atab" data-atab="dict">Vocabulary base</button>
+        <button class="atab" data-atab="questions">Questions</button>
+        <button class="atab" data-atab="settings">Settings</button>
+      </nav>
+
+      <div class="atab-pane active" data-atab="texts">
+        <div class="admin-grid">
+          <div>
+            <h3>All texts</h3>
+            <button class="btn primary" id="adminNewText">+ New text</button>
+            <ul class="admin-text-list" id="adminTextList"></ul>
+          </div>
+          <div>
+            <h3>Edit text</h3>
+            <form id="adminTextForm" class="form">
+              <label>Title <input type="text" id="atTitle" class="input" /></label>
+              <label>Illustration (optional override)
+                <input type="text" id="atIllustration" class="input"
+                       placeholder="leave empty → loads images/texts/{id}.jpg automatically" />
+              </label>
+              <label>Language
+                <select id="atLang" class="input">
+                  <option value="en">English</option>
+                  <option value="ru">Русский</option>
+                  <option value="de">Deutsch</option>
+                  <option value="fr">Français</option>
+                </select>
+              </label>
+              <div class="levels-grid">
+                <label>A1 <textarea id="atA1" class="input"></textarea></label>
+                <label>A2 <textarea id="atA2" class="input"></textarea></label>
+                <label>B1 <textarea id="atB1" class="input"></textarea></label>
+                <label>B2 <textarea id="atB2" class="input"></textarea></label>
+                <label>C1 <textarea id="atC1" class="input"></textarea></label>
+                <label>C2 <textarea id="atC2" class="input"></textarea></label>
+              </div>
+              <h4>Polish translations (optional, per level — powers Bilingual mode)</h4>
+              <div class="levels-grid">
+                <label>A1 (PL) <textarea id="atPlA1" class="input"></textarea></label>
+                <label>A2 (PL) <textarea id="atPlA2" class="input"></textarea></label>
+                <label>B1 (PL) <textarea id="atPlB1" class="input"></textarea></label>
+                <label>B2 (PL) <textarea id="atPlB2" class="input"></textarea></label>
+                <label>C1 (PL) <textarea id="atPlC1" class="input"></textarea></label>
+                <label>C2 (PL) <textarea id="atPlC2" class="input"></textarea></label>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Save</button>
+                <button type="button" class="btn danger" id="atDelete">Delete</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="atab-pane" data-atab="audio">
+        <h3>Admin audio upload</h3>
+        <p class="muted">Attach an audio recording for a specific text & level. Stored locally for now.</p>
+        <div class="form">
+          <label>Text
+            <select id="auText" class="input"></select>
+          </label>
+          <label>Level
+            <select id="auLevel" class="input">
+              <option>A1</option><option>A2</option><option>B1</option>
+              <option>B2</option><option>C1</option><option>C2</option>
+            </select>
+          </label>
+          <label>Audio file
+            <input type="file" id="auFile" accept="audio/*" class="input" />
+          </label>
+          <audio id="auPreview" controls hidden></audio>
+        </div>
+      </div>
+
+      <div class="atab-pane" data-atab="dict">
+        <h3>Vocabulary base</h3>
+        <p class="muted">Click an entry in <em>Dictionary</em> to edit its full profile. Quick add below.</p>
+        <form id="dictQuickAdd" class="form inline">
+          <input type="text" id="dqWord" placeholder="word / phrase" class="input" required />
+          <select id="dqLang" class="input">
+            <option value="en">en</option><option value="ru">ru</option>
+            <option value="de">de</option><option value="fr">fr</option>
+          </select>
+          <select id="dqLevel" class="input">
+            <option>A1</option><option>A2</option><option>B1</option>
+            <option>B2</option><option>C1</option><option>C2</option>
+          </select>
+          <input type="text" id="dqPL" placeholder="polish translation" class="input" />
+          <button class="btn primary">Add</button>
+        </form>
+      </div>
+
+      <div class="atab-pane" data-atab="questions">
+        <h3>Questions</h3>
+        <p class="muted">Add, edit, reorder or remove questions for the selected text. All question types are supported.</p>
+        <div class="form aq-form" id="aqForm">
+          <label>Text
+            <select id="aqText" class="input"></select>
+          </label>
+          <div class="aq-row-grid">
+            <label>Category
+              <select id="aqType" class="input">
+                <option value="tprs">TPRS (oral)</option>
+                <option value="comprehension">Reading comprehension</option>
+              </select>
+            </label>
+            <label id="aqSubtypeRow" hidden>Comprehension type
+              <select id="aqSubtype" class="input">
+                <option value="mc">Multiple choice</option>
+                <option value="tf">True / False</option>
+                <option value="short">Short answer</option>
+                <option value="open">Open</option>
+              </select>
+            </label>
+          </div>
+          <label>Question text
+            <input type="text" id="aqQ" class="input" placeholder="What did Tom find on his desk?" />
+          </label>
+
+          <label id="aqARow">Suggested answer <span class="muted" style="font-weight:400;font-size:0.78rem;">(optional)</span>
+            <input type="text" id="aqA" class="input" placeholder="A grey cat." />
+          </label>
+
+          <div id="aqMcRow" hidden>
+            <h4 style="margin-top:0.4rem;">Options (pick the correct one)</h4>
+            <div class="aq-mc-options">
+              <label class="aq-opt-row"><input type="radio" name="aqCorrect" value="0" /><input type="text" id="aqOpt0" class="input" placeholder="Option 1" /></label>
+              <label class="aq-opt-row"><input type="radio" name="aqCorrect" value="1" /><input type="text" id="aqOpt1" class="input" placeholder="Option 2" /></label>
+              <label class="aq-opt-row"><input type="radio" name="aqCorrect" value="2" /><input type="text" id="aqOpt2" class="input" placeholder="Option 3 (optional)" /></label>
+              <label class="aq-opt-row"><input type="radio" name="aqCorrect" value="3" /><input type="text" id="aqOpt3" class="input" placeholder="Option 4 (optional)" /></label>
+            </div>
+          </div>
+
+          <label id="aqTfRow" hidden>Correct answer
+            <select id="aqTfCorrect" class="input">
+              <option value="true">True</option>
+              <option value="false">False</option>
+            </select>
+          </label>
+
+          <div class="form-actions">
+            <button type="button" class="btn primary" id="aqSave">+ Add question</button>
+            <button type="button" class="btn" id="aqCancel" hidden>Cancel</button>
+          </div>
+        </div>
+
+        <h4 style="margin-top:1.4rem;">Existing questions</h4>
+        <div id="aqList" class="admin-q-list"></div>
+      </div>
+
+      <div class="atab-pane" data-atab="settings">
+        <h3>Settings</h3>
+        <button class="btn" id="exportData">Export data (JSON)</button>
+        <button class="btn" id="importData">Import data (JSON)</button>
+        <input type="file" id="importDataFile" accept="application/json" hidden />
+        <button class="btn danger" id="clearLocal">Clear local data</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Floating word tooltip -->
+<div id="wordTooltip" class="word-tooltip" hidden>
+  <div class="wt-head">
+    <span class="wt-word" id="wtWord"></span>
+    <span class="wt-ipa" id="wtIpa"></span>
+    <button class="icon-btn" id="wtSpeak" title="Listen">🔊</button>
+  </div>
+  <div class="wt-pos" id="wtPos"></div>
+  <div class="wt-translation" id="wtTranslation"></div>
+  <div class="wt-example" id="wtExample"></div>
+  <div class="wt-actions">
+    <button class="btn primary small" id="wtFav">★ Add to favourites</button>
+    <button class="btn small" id="wtProfile">Open profile →</button>
+  </div>
+</div>
+
+<!-- Pronunciation practice modal -->
+<div id="pronunciationModal" class="modal" hidden>
+  <div class="modal-card">
+    <header class="modal-head">
+      <h2>🎤 Pronunciation practice</h2>
+      <button class="icon-btn" id="prClose">✕</button>
+    </header>
+    <div class="pr-progress" id="prProgress"></div>
+    <div class="pr-sentence" id="prSentence"></div>
+    <div class="pr-result" id="prResult"></div>
+    <div class="form-actions" style="justify-content:center;margin-top:1rem;">
+      <button class="btn" id="prPlay">🔊 Listen</button>
+      <button class="btn primary" id="prRecord">🎤 Record</button>
+      <button class="btn" id="prNext">Next ▶</button>
+    </div>
+    <p class="muted" style="text-align:center;margin-top:0.6rem;font-size:0.85rem;" id="prHint">
+      Click <strong>Listen</strong> to hear the sentence, then <strong>Record</strong> and read it aloud.
+    </p>
+  </div>
+</div>
+
+<!-- Word profile modal -->
+<div id="profileModal" class="modal" hidden>
+  <div class="modal-card">
+    <header class="modal-head">
+      <h2 id="pmWord">word</h2>
+      <button class="icon-btn" id="pmClose">✕</button>
+    </header>
+    <div id="pmView">
+      <div class="pm-meta">
+        <span class="badge" id="pmLang"></span>
+        <span class="badge" id="pmLevel"></span>
+        <span class="badge subtle" id="pmPos"></span>
+        <span class="badge subtle" id="pmStatus"></span>
+        <button class="icon-btn" id="pmSpeak">🔊</button>
+      </div>
+      <p class="ipa" id="pmIpa"></p>
+      <h4>Translations</h4>
+      <div id="pmTranslations"></div>
+      <h4>Examples</h4>
+      <ul id="pmExamples"></ul>
+      <h4>Source texts</h4>
+      <ul id="pmSources"></ul>
+      <div class="form-actions">
+        <button class="btn primary" id="pmFav">★ Add to favourites</button>
+        <button class="btn" id="pmPractise">Practise this word</button>
+        <button class="btn ghost" id="pmEdit">Edit profile</button>
+      </div>
+    </div>
+    <form id="pmEditForm" class="form" hidden>
+      <label>Word <input id="pmEWord" class="input" /></label>
+      <label>IPA <input id="pmEIpa" class="input" /></label>
+      <label>Part of speech
+        <select id="pmEPos" class="input">
+          <option>noun</option><option>verb</option><option>adjective</option>
+          <option>adverb</option><option>phrase</option><option>idiom</option>
+          <option>preposition</option><option>conjunction</option><option>pronoun</option>
+        </select>
+      </label>
+      <label>CEFR level
+        <select id="pmELevel" class="input">
+          <option>A1</option><option>A2</option><option>B1</option>
+          <option>B2</option><option>C1</option><option>C2</option>
+        </select>
+      </label>
+      <label>Polish translations (comma separated)
+        <input id="pmETranslations" class="input" />
+      </label>
+      <label>Status
+        <select id="pmEStatus" class="input">
+          <option>complete</option>
+          <option>needs review</option>
+        </select>
+      </label>
+      <h4>Examples</h4>
+      <div id="pmEExamples"></div>
+      <button type="button" class="btn ghost small" id="pmEAddExample">+ Add example</button>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save changes</button>
+        <button type="button" class="btn" id="pmECancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+LingoLevels — text illustrations
+============================
+
+Drop image files here using this naming convention:
+
+    {textId}.{ext}
+
+Supported extensions (the app tries them in this order):
+    .jpg  .jpeg  .png  .webp
+
+If no matching file exists, the illustration block is hidden automatically.
+
+Current text IDs:
+    demo-en-strange-day        "A strange day at school"
+    demo-en-smartphone         "The smartphone trap"
+    demo-ru-park               "Странная встреча в парке"
+    demo-ru-smartphone         "Ловушка смартфона"
+    demo-de-brief              "Der Brief im Briefkasten"
+    demo-de-smartphone         "Die Smartphone-Falle"
+    demo-fr-librairie          "La vieille librairie"
+    demo-fr-smartphone         "Le piège du smartphone"
+
+Examples:
+    images/texts/demo-en-strange-day.jpg
+    images/texts/demo-en-smartphone.png
+
+Override via Admin panel:
+    Admin → Texts → "Illustration (optional)" lets you point to any path,
+    overriding the convention for a specific text.
+
+Any aspect ratio works — the image is displayed at its natural size,
+centered in the reading column. Only constraint: very wide images get
+scaled down so they don't overflow the column. Portrait, square, banner
+and small icon-sized graphics all render correctly.
