@@ -1690,6 +1690,80 @@ select:focus {
 ::selection { background: var(--accent-soft); color: var(--accent); }
 
 /* ============================================================
+   AI IMPORT PREVIEW
+   ============================================================ */
+.ai-preview {
+  margin-top: 1.2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.2rem;
+}
+.ai-preview h4 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ai-preview details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.4rem;
+  background: var(--bg-card-solid);
+}
+.ai-preview details[open] { background: var(--bg-soft); border-color: var(--border-strong); }
+.ai-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ai-preview summary::marker, .ai-preview summary::-webkit-details-marker { display: none; }
+.ai-preview summary::after { content: '▾'; color: var(--text-muted); transition: var(--transition); }
+.ai-preview details[open] summary::after { transform: rotate(180deg); }
+.ai-preview-text {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.75;
+  margin-top: 0.7rem;
+  padding: 0.7rem 0;
+  border-top: 1px dashed var(--border);
+  white-space: pre-wrap;
+}
+.ai-preview-text.pl { color: var(--text-soft); }
+.ai-vocab {
+  margin-top: 0.7rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+.ai-vocab-item {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+.ai-vocab-item .w { font-weight: 700; }
+.ai-vocab-item .ipa { color: var(--text-muted); font-style: italic; font-size: 0.78rem; }
+.ai-vocab-item .pl { color: var(--text-soft); font-size: 0.82rem; }
+.ai-spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: -3px;
+  margin-right: 6px;
+  animation: aiSpin 0.8s linear infinite;
+}
+@keyframes aiSpin { to { transform: rotate(360deg); } }
+
+/* ============================================================
    MOBILE — bottom nav, collapsible TTS, larger tap targets
    ============================================================ */
 .bottom-nav { display: none; }

@@ -273,6 +273,7 @@
       </header>
       <nav class="admin-tabs" id="adminTabs">
         <button class="atab active" data-atab="texts">Texts</button>
+        <button class="atab" data-atab="ai">🤖 AI Import</button>
         <button class="atab" data-atab="audio">Audio</button>
         <button class="atab" data-atab="dict">Vocabulary base</button>
         <button class="atab" data-atab="questions">Questions</button>
@@ -325,6 +326,50 @@
               </div>
             </form>
           </div>
+        </div>
+      </div>
+
+      <div class="atab-pane" data-atab="ai">
+        <h3>🤖 Wygeneruj lekcję z AI</h3>
+        <p class="muted">Wklej dowolny tekst lub link do artykułu — Gemini 1.5 Flash przerobi to na sześć wersji CEFR (A1–C2) w wybranym języku, polskie tłumaczenia i 8–12 słówek do słownika. Po wygenerowaniu zobaczysz podgląd i zdecydujesz, czy zapisać.</p>
+
+        <div id="aiNotConfigured" class="card" style="background:rgba(255,159,67,0.10);border-color:var(--warn);margin-bottom:1rem;" hidden>
+          <strong>⚠️ Worker URL nie jest jeszcze ustawiony.</strong>
+          <p class="muted" style="margin-top:0.4rem;">Wdróż Cloudflare Worker'a wg instrukcji w <code>worker/README.md</code>, potem wklej jego adres w <strong>Admin → Settings → Worker URL</strong>.</p>
+        </div>
+
+        <div class="form">
+          <div class="aq-row-grid">
+            <label>Źródło
+              <select id="aiSourceType" class="input">
+                <option value="text">Wklejony tekst</option>
+                <option value="url">Adres URL</option>
+              </select>
+            </label>
+            <label>Język docelowy
+              <select id="aiTargetLang" class="input">
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+              </select>
+            </label>
+          </div>
+
+          <label id="aiTextRow">Tekst źródłowy
+            <textarea id="aiSourceText" rows="8" class="input" placeholder="Wklej tutaj artykuł, rozdział, opis... w dowolnym języku (Gemini zrozumie polski tak samo dobrze jak angielski)."></textarea>
+          </label>
+
+          <label id="aiUrlRow" hidden>URL artykułu
+            <input type="url" id="aiSourceUrl" class="input" placeholder="https://..." />
+          </label>
+
+          <div class="form-actions">
+            <button class="btn primary" id="aiGenerate">✨ Wygeneruj lekcję</button>
+          </div>
+
+          <div id="aiStatus" class="muted" style="min-height:1.4em;"></div>
+          <div id="aiPreview"></div>
         </div>
       </div>
 
@@ -426,10 +471,25 @@
 
       <div class="atab-pane" data-atab="settings">
         <h3>Settings</h3>
-        <button class="btn" id="exportData">Export data (JSON)</button>
-        <button class="btn" id="importData">Import data (JSON)</button>
-        <input type="file" id="importDataFile" accept="application/json" hidden />
-        <button class="btn danger" id="clearLocal">Clear local data</button>
+
+        <div class="form" style="max-width:560px;">
+          <label>AI Worker URL <span class="muted" style="font-weight:400;font-size:0.78rem;">(Cloudflare Worker — patrz <code>worker/README.md</code>)</span>
+            <input type="url" id="aiWorkerUrl" class="input" placeholder="https://lingolevels-ai.<twoj-login>.workers.dev" />
+          </label>
+          <div class="form-actions">
+            <button class="btn primary" id="saveWorkerUrl">💾 Zapisz</button>
+            <button class="btn ghost" id="testWorkerUrl">🔌 Testuj połączenie</button>
+            <span id="workerUrlStatus" class="muted"></span>
+          </div>
+        </div>
+
+        <h3 style="margin-top:1.6rem;">Dane</h3>
+        <div class="form-actions">
+          <button class="btn" id="exportData">Export data (JSON)</button>
+          <button class="btn" id="importData">Import data (JSON)</button>
+          <input type="file" id="importDataFile" accept="application/json" hidden />
+          <button class="btn danger" id="clearLocal">Clear local data</button>
+        </div>
       </div>
     </div>
   </section>

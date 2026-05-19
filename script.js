@@ -13,6 +13,7 @@ const LS_KEYS = {
   SRS:        'lingolevels.srs',
   ENCOUNTERS: 'lingolevels.encounters',
   STATS:      'lingolevels.stats',
+  WORKER_URL: 'lingolevels.workerUrl',
 };
 // One-time migration from the original "levelup.*" prefix → "lingolevels.*".
 (function migrateLsKeys() {
@@ -2838,6 +2839,194 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#aqSave').addEventListener('click', saveAdminQuestion);
   $('#aqCancel').addEventListener('click', cancelEditQuestion);
   updateAdminFormVisibility();
+
+  // ===== AI Import (Gemini via Cloudflare Worker) =====
+  const workerUrlInput = $('#aiWorkerUrl');
+  if (workerUrlInput) workerUrlInput.value = localStorage.getItem(LS_KEYS.WORKER_URL) || '';
+  const notice = $('#aiNotConfigured');
+  if (notice) notice.hidden = !!localStorage.getItem(LS_KEYS.WORKER_URL);
+
+  $('#saveWorkerUrl')?.addEventListener('click', () => {
+    const url = workerUrlInput.value.trim().replace(/\/+$/, '');
+    if (url && !/^https?:\/\//.test(url)) { alert('URL musi zaczynać się od https://'); return; }
+    if (url) localStorage.setItem(LS_KEYS.WORKER_URL, url);
+    else localStorage.removeItem(LS_KEYS.WORKER_URL);
+    if (notice) notice.hidden = !!url;
+    const s = $('#workerUrlStatus');
+    if (s) { s.textContent = url ? '✓ Zapisano' : '✓ Wyczyszczono'; s.style.color = 'var(--success)'; setTimeout(() => s.textContent = '', 2500); }
+  });
+  $('#testWorkerUrl')?.addEventListener('click', async () => {
+    const url = (workerUrlInput.value || localStorage.getItem(LS_KEYS.WORKER_URL) || '').trim().replace(/\/+$/, '');
+    const s = $('#workerUrlStatus');
+    if (!url) { s.textContent = '⚠ Najpierw wklej URL'; s.style.color = 'var(--warn)'; return; }
+    s.innerHTML = '<span class="ai-spinner"></span>Sprawdzam...'; s.style.color = 'var(--text-muted)';
+    try {
+      // OPTIONS preflight check.
+      const r = await fetch(url, { method: 'OPTIONS' });
+      if (r.status === 200 || r.status === 204) { s.textContent = '✓ Połączenie OK'; s.style.color = 'var(--success)'; }
+      else { s.textContent = `⚠ Odpowiedź HTTP ${r.status}`; s.style.color = 'var(--warn)'; }
+    } catch (e) {
+      s.textContent = '✗ Nie można się połączyć: ' + e.message;
+      s.style.color = 'var(--danger)';
+    }
+  });
+
+  // Source type toggle (text ↔ url)
+  $('#aiSourceType')?.addEventListener('change', e => {
+    const isUrl = e.target.value === 'url';
+    $('#aiTextRow').hidden = isUrl;
+    $('#aiUrlRow').hidden  = !isUrl;
+  });
+
+  $('#aiGenerate')?.addEventListener('click', aiGenerate);
+
+  async function aiGenerate() {
+    const workerUrl = (localStorage.getItem(LS_KEYS.WORKER_URL) || '').trim().replace(/\/+$/, '');
+    if (!workerUrl) { alert('Najpierw ustaw Worker URL w Admin → Settings'); return; }
+
+    const sourceType = $('#aiSourceType').value;
+    const source = sourceType === 'url' ? $('#aiSourceUrl').value.trim() : $('#aiSourceText').value.trim();
+    const targetLang = $('#aiTargetLang').value;
+    if (!source) { alert(sourceType === 'url' ? 'Podaj URL' : 'Wklej tekst'); return; }
+    if (sourceType === 'text' && source.length < 80) { alert('Tekst jest za krótki (min. 80 znaków)'); return; }
+
+    const status = $('#aiStatus');
+    const preview = $('#aiPreview');
+    const btn = $('#aiGenerate');
+    status.innerHTML = '<span class="ai-spinner"></span>Generuję 6 wersji CEFR + tłumaczenia + słówka... To zwykle trwa 15–40 sekund.';
+    preview.innerHTML = '';
+    btn.disabled = true;
+
+    try {
+      const t0 = performance.now();
+      const r = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, sourceType, targetLang })
+      });
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
+      const dt = ((performance.now() - t0) / 1000).toFixed(1);
+      status.innerHTML = `<span style="color:var(--success)">✓ Gotowe w ${dt}s. Przejrzyj podgląd i kliknij Zapisz.</span>`;
+      renderAiPreview(data, targetLang);
+    } catch (e) {
+      status.innerHTML = `<span style="color:var(--danger)">✗ Błąd: ${e.message}</span>`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderAiPreview(data, targetLang) {
+    const cont = $('#aiPreview');
+    cont.innerHTML = '';
+    const wrap = el('div', { class:'ai-preview' });
+    wrap.appendChild(el('h4', {}, data.title || '(bez tytułu)'));
+
+    LEVELS.forEach(l => {
+      const txt = (data.levels && data.levels[l]) || '';
+      const pl  = (data.translations_pl && data.translations_pl[l]) || '';
+      const wc  = txt.trim().split(/\s+/).filter(Boolean).length;
+      const det = el('details', {});
+      det.appendChild(el('summary', {}, [
+        el('span', {}, `${l} — ${wc} słów`),
+        document.createTextNode('')
+      ]));
+      det.appendChild(el('div', { class:'ai-preview-text' }, txt));
+      if (pl) {
+        det.appendChild(el('div', { class:'ai-preview-text pl' }, '🇵🇱  ' + pl));
+      }
+      wrap.appendChild(det);
+    });
+
+    const vocab = Array.isArray(data.vocabulary) ? data.vocabulary : [];
+    if (vocab.length) {
+      const vDet = el('details', { open: true });
+      vDet.appendChild(el('summary', {}, `Słówka (${vocab.length})`));
+      const grid = el('div', { class:'ai-vocab' });
+      vocab.forEach(v => {
+        const item = el('div', { class:'ai-vocab-item' });
+        item.appendChild(el('div', {}, [
+          el('span', { class:'w' }, v.word || ''),
+          document.createTextNode(' '),
+          el('span', { class:'ipa' }, v.ipa || '')
+        ]));
+        item.appendChild(el('div', { class:'pl' }, (Array.isArray(v.translations_pl) ? v.translations_pl.join(', ') : '') + (v.pos ? ' · ' + v.pos : '')));
+        if (v.example) item.appendChild(el('div', { class:'muted', style:'font-size:0.78rem;margin-top:0.25rem;font-style:italic;' }, v.example));
+        grid.appendChild(item);
+      });
+      vDet.appendChild(grid);
+      wrap.appendChild(vDet);
+    }
+
+    const actions = el('div', { class:'form-actions', style:'margin-top:1rem;' });
+    actions.appendChild(el('button', { class:'btn primary', onclick: () => saveAiLesson(data, targetLang) }, '💾 Zapisz jako nowy tekst'));
+    actions.appendChild(el('button', { class:'btn ghost', onclick: () => { cont.innerHTML = ''; $('#aiStatus').textContent = ''; } }, 'Odrzuć'));
+    wrap.appendChild(actions);
+
+    cont.appendChild(wrap);
+  }
+
+  function saveAiLesson(data, targetLang) {
+    const slug = (data.title || 'ai-text').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || 'lesson';
+    const id = `ai-${targetLang}-${slug}-${Date.now().toString(36)}`;
+
+    const newText = {
+      id,
+      title: data.title || 'AI Lesson',
+      language: targetLang,
+      illustration: null,
+      levels: {
+        A1: (data.levels?.A1) || '',
+        A2: (data.levels?.A2) || '',
+        B1: (data.levels?.B1) || '',
+        B2: (data.levels?.B2) || '',
+        C1: (data.levels?.C1) || '',
+        C2: (data.levels?.C2) || ''
+      },
+      questions: { tprs: [], comprehension: [] },
+      translations: { pl: data.translations_pl || {} },
+      audio: { A1:null, A2:null, B1:null, B2:null, C1:null, C2:null }
+    };
+    state.texts.push(newText);
+
+    // Merge vocabulary into the dictionary (skip duplicates by language+word).
+    const vocab = Array.isArray(data.vocabulary) ? data.vocabulary : [];
+    let added = 0;
+    vocab.forEach(v => {
+      if (!v.word) return;
+      const norm = v.word.toLowerCase().trim();
+      const dup = state.dictionary.find(e => e.language === targetLang && e.word.toLowerCase().trim() === norm);
+      if (dup) {
+        if (!dup.sourceTextIds.includes(id)) dup.sourceTextIds.push(id);
+        return;
+      }
+      state.dictionary.push({
+        id: 'd_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36),
+        word: v.word,
+        language: targetLang,
+        cefrLevel: v.cefr || 'B1',
+        ipa: v.ipa || '',
+        partOfSpeech: v.pos || '',
+        translations: { pl: Array.isArray(v.translations_pl) ? v.translations_pl : (v.translations_pl ? [v.translations_pl] : []), en: [] },
+        examples: v.example ? [{ sentence: v.example, translationPL: v.example_pl || '' }] : [],
+        sourceTextIds: [id],
+        audio: null,
+        status: 'complete'
+      });
+      added++;
+    });
+
+    saveState();
+    state.settings.currentTextId = id;
+    state.settings.language = targetLang;
+    saveState();
+    alert(`✓ Zapisano "${newText.title}" (+${added} nowych słówek). Otwieram w Czytaniu.`);
+    showView('reader');
+    renderReader();
+  }
+  // ===== /AI Import =====
 
   // Admin: settings
   $('#exportData').addEventListener('click', () => {
