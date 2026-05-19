@@ -1641,40 +1641,47 @@ const tts = {
 };
 
 // ---------- Karaoke (timer-based, with onboundary refinement) ----------
+// A bouncing dot floats above the current word; subtle colour change marks the
+// word itself. Timing uses gap-to-next-word so punctuation pauses are included.
 const karaoke = {
   index: 0,
   timer: null,
   rate: 1,
   prevSpan: null,
+  cursorEl: null,
+  cursorPos: null,    // { x, y } in text-body local coords
 
   start(rate) {
     this.stop();
     this.rate = rate || 1;
     if (!wordSpansByChar.length) return;
+    this._ensureCursor();
     this.index = 0;
     this._tick();
   },
 
-  // Schedule the next advance based on the *current* word's character length.
   _tick() {
     if (this.index >= wordSpansByChar.length) return;
     const item = wordSpansByChar[this.index];
     this._highlight(item.span);
-    // Average TTS pace: ~16 chars/sec at rate 1.0 for European languages.
-    // Per word duration ≈ chars / (16 * rate). Floor at 110 ms so single-letter
-    // words don't blink past unreadable.
-    const chars = item.end - item.start;
-    const ms = Math.max(110, (chars / (16 * this.rate)) * 1000);
+    // Duration = chars from THIS word's start to NEXT word's start. This includes
+    // trailing whitespace and punctuation (commas, periods) — which TTS engines
+    // pause for. The last word falls back to its own length.
+    let chars;
+    if (this.index + 1 < wordSpansByChar.length) {
+      chars = wordSpansByChar[this.index + 1].start - item.start;
+    } else {
+      chars = item.end - item.start;
+    }
+    // ~12 chars/sec at rate 1.0 — close to observed Chrome TTS pace for en-GB.
+    const ms = Math.max(140, (chars / (12 * this.rate)) * 1000);
     this.index++;
     this.timer = setTimeout(() => this._tick(), ms);
   },
 
-  // Real onboundary event arrived — snap the timer to the correct word so
-  // any drift between estimate and reality gets corrected.
   syncToChar(charIndex) {
     const arr = wordSpansByChar;
     if (!arr.length) return;
-    // Binary search for the span containing charIndex.
     let lo = 0, hi = arr.length - 1, hit = -1;
     while (lo <= hi) {
       const mid = (lo + hi) >> 1;
@@ -1683,7 +1690,6 @@ const karaoke = {
       else { hit = mid; break; }
     }
     if (hit < 0) return;
-    // Cancel the pending tick, jump to the corrected position, schedule from there.
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
     this.index = hit;
     this._tick();
@@ -1702,22 +1708,68 @@ const karaoke = {
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
     this.index = 0;
     this._clearHighlight();
+    this._removeCursor();
   },
 
   _highlight(span) {
     if (this.prevSpan && this.prevSpan !== span) this.prevSpan.classList.remove('tts-active');
     span.classList.add('tts-active');
     this.prevSpan = span;
-    // Keep the active word in view (gently).
+    this._moveCursor(span);
     const rect = span.getBoundingClientRect();
-    const tooHigh = rect.top < 100;
-    const tooLow  = rect.bottom > window.innerHeight - 120;
-    if (tooHigh || tooLow) span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (rect.top < 100 || rect.bottom > window.innerHeight - 120) {
+      span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   },
 
   _clearHighlight() {
     if (this.prevSpan) this.prevSpan.classList.remove('tts-active');
     this.prevSpan = null;
+  },
+
+  _ensureCursor() {
+    const body = $('#textBody');
+    if (!body) return;
+    if (this.cursorEl && body.contains(this.cursorEl)) return;
+    const dot = document.createElement('div');
+    dot.className = 'tts-cursor';
+    body.appendChild(dot);
+    this.cursorEl = dot;
+    this.cursorPos = null;
+  },
+
+  _removeCursor() {
+    if (this.cursorEl && this.cursorEl.parentNode) this.cursorEl.parentNode.removeChild(this.cursorEl);
+    this.cursorEl = null;
+    this.cursorPos = null;
+  },
+
+  _moveCursor(span) {
+    if (!this.cursorEl) this._ensureCursor();
+    if (!this.cursorEl) return;
+    const body = $('#textBody');
+    if (!body) return;
+    const bodyRect = body.getBoundingClientRect();
+    const spanRect = span.getBoundingClientRect();
+    // Dot is 10px wide, sits 18px above the top of the word.
+    const targetX = spanRect.left - bodyRect.left + spanRect.width / 2 - 5;
+    const targetY = spanRect.top  - bodyRect.top  - 18;
+
+    const from = this.cursorPos || { x: targetX, y: targetY + 24 };
+    // Arc midpoint — lifts the dot up between the two words to look like a hop.
+    const midX = (from.x + targetX) / 2;
+    const lift = Math.min(from.y, targetY) - 16;
+
+    if (this.cursorEl.animate) {
+      this.cursorEl.animate([
+        { left: from.x + 'px',   top: from.y + 'px' },
+        { left: midX   + 'px',   top: lift   + 'px', offset: 0.55 },
+        { left: targetX + 'px',  top: targetY + 'px' }
+      ], { duration: 280, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' });
+    }
+    this.cursorEl.style.left = targetX + 'px';
+    this.cursorEl.style.top  = targetY + 'px';
+    this.cursorPos = { x: targetX, y: targetY };
   }
 };
 

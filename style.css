@@ -726,24 +726,41 @@ body.focus-mode .text-illustration { display: none !important; }
 /* ============================================================
    KARAOKE — TTS-synced highlight
    ============================================================ */
+/* Subtle accent on the current word — the bouncing dot above is the main cue. */
 .word.tts-active {
-  background: var(--gradient);
-  color: #fff;
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 6px;
-  padding: 1px 5px;
-  margin: 0 1px;
-  font-weight: 600;
-  transform: scale(1.08);
-  transition: all 110ms ease;
-  box-shadow: 0 0 24px var(--accent-glow), 0 6px 14px rgba(0,0,0,0.18);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.18);
-  animation: ttsPulse 1.2s ease-in-out infinite;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 4px;
+  transition: color 120ms ease, background 120ms ease;
 }
-@keyframes ttsPulse {
-  0%, 100% { box-shadow: 0 0 18px var(--accent-glow), 0 6px 14px rgba(0,0,0,0.16); }
-  50%      { box-shadow: 0 0 34px var(--accent-glow), 0 6px 14px rgba(0,0,0,0.20); }
+
+/* Bouncing dot positioned above the active word inside .text-body. */
+#textBody { position: relative; }
+.tts-cursor {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gradient);
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 0 16px var(--accent-glow), 0 2px 6px rgba(0, 0, 0, 0.18);
+  will-change: left, top;
+}
+/* Soft pulsing halo emanating from the dot. */
+.tts-cursor::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--gradient);
+  opacity: 0.6;
+  animation: ttsCursorPulse 0.9s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes ttsCursorPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.55; }
+  50%      { transform: scale(2.2); opacity: 0;    }
 }
 
 /* ============================================================
