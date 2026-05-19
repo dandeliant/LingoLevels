@@ -1673,8 +1673,11 @@ const karaoke = {
     } else {
       chars = item.end - item.start;
     }
-    // ~12 chars/sec at rate 1.0 — close to observed Chrome TTS pace for en-GB.
-    const ms = Math.max(140, (chars / (12 * this.rate)) * 1000);
+    // Gap-inclusive counting (whitespace + punctuation = natural pauses), so the
+    // chars/sec figure has to be *higher* than the word-only equivalent — about
+    // 15 cps matches Chrome's Google en-GB voice at rate=1. Short-word floor
+    // dropped to 100 ms so single-letter words ("I", "a") don't hang.
+    const ms = Math.max(100, (chars / (15 * this.rate)) * 1000);
     this.index++;
     this.timer = setTimeout(() => this._tick(), ms);
   },
