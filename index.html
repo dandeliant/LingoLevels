@@ -27,6 +27,16 @@
     <button class="tab" data-view="admin">Admin</button>
   </nav>
 
+  <!-- Mobile bottom nav — duplicates the tabs above, hidden on desktop. -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="bnav-item active" data-view="reader"><span class="bnav-icon">📖</span><span class="bnav-label">Czytanie</span></button>
+    <button class="bnav-item" data-view="vocab"><span class="bnav-icon">⭐</span><span class="bnav-label">Słówka</span></button>
+    <button class="bnav-item" data-view="dictionary"><span class="bnav-icon">📚</span><span class="bnav-label">Słownik</span></button>
+    <button class="bnav-item" data-view="quizzes"><span class="bnav-icon">🎮</span><span class="bnav-label">Quizy</span></button>
+    <button class="bnav-item" data-view="progress"><span class="bnav-icon">🔥</span><span class="bnav-label">Postępy</span></button>
+    <button class="bnav-item" data-view="admin"><span class="bnav-icon">⚙️</span><span class="bnav-label">Admin</span></button>
+  </nav>
+
   <div class="top-actions">
     <label class="lang-pick">
       <span class="lbl">Language</span>
@@ -89,23 +99,28 @@
 
         <!-- TTS controls -->
         <div class="tts-bar">
-          <button class="btn primary" id="ttsPlay">▶ Read</button>
-          <button class="btn" id="ttsPause">⏸ Pause</button>
-          <button class="btn" id="ttsStop">⏹ Stop</button>
-          <label>Voice
-            <select id="ttsVoice" class="input"></select>
-          </label>
-          <label>Rate
-            <input type="range" min="0.5" max="1.5" step="0.05" value="1" id="ttsRate" />
-          </label>
-          <label>Pitch
-            <input type="range" min="0.5" max="1.5" step="0.05" value="1" id="ttsPitch" />
-          </label>
-          <span class="spacer"></span>
-          <label class="ckbox"><input type="checkbox" id="focusMode" /> Focus</label>
-          <label class="ckbox"><input type="checkbox" id="bilingualMode" /> Show PL</label>
-          <label class="ckbox"><input type="checkbox" id="hideTranslations" /> Hide translations</label>
-          <button class="btn ghost" id="pronunciationBtn" title="Practice pronunciation sentence by sentence">🎤 Practice</button>
+          <div class="tts-primary">
+            <button class="btn primary" id="ttsPlay">▶ Read</button>
+            <button class="btn" id="ttsPause">⏸</button>
+            <button class="btn" id="ttsStop">⏹</button>
+            <button class="btn ghost" id="pronunciationBtn" title="Practice pronunciation sentence by sentence">🎤 Practice</button>
+            <button class="btn ghost tts-toggle" id="ttsToggleMore" type="button" aria-expanded="false">⚙ Więcej</button>
+          </div>
+          <div class="tts-secondary" id="ttsSecondary">
+            <label>Voice
+              <select id="ttsVoice" class="input"></select>
+            </label>
+            <label>Rate
+              <input type="range" min="0.5" max="1.5" step="0.05" value="1" id="ttsRate" />
+            </label>
+            <label>Pitch
+              <input type="range" min="0.5" max="1.5" step="0.05" value="1" id="ttsPitch" />
+            </label>
+            <span class="spacer"></span>
+            <label class="ckbox"><input type="checkbox" id="focusMode" /> Focus</label>
+            <label class="ckbox"><input type="checkbox" id="bilingualMode" /> Show PL</label>
+            <label class="ckbox"><input type="checkbox" id="hideTranslations" /> Hide translations</label>
+          </div>
         </div>
 
         <!-- Admin uploaded audio per level -->

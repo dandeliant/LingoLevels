@@ -1690,6 +1690,158 @@ select:focus {
 ::selection { background: var(--accent-soft); color: var(--accent); }
 
 /* ============================================================
+   MOBILE — bottom nav, collapsible TTS, larger tap targets
+   ============================================================ */
+.bottom-nav { display: none; }
+
+@media (max-width: 720px) {
+  /* Top tabs disappear — bottom nav takes over. */
+  .tabs { display: none; }
+  .topbar {
+    grid-template-columns: 1fr auto;
+    padding: 0.7rem 1rem;
+    gap: 0.7rem;
+  }
+  .top-actions { gap: 0.35rem; }
+  .lang-pick select { min-width: 110px; padding: 0.5rem; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    z-index: 40;
+    background: var(--bg-card);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    border-top: 1px solid var(--border);
+    padding: 0.35rem 0.2rem calc(0.35rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 24px -8px rgba(15, 23, 42, 0.18);
+  }
+  .bnav-item {
+    background: transparent;
+    border: none;
+    padding: 0.4rem 0.1rem;
+    cursor: pointer;
+    color: var(--text-soft);
+    font-family: inherit;
+    font-size: 0.66rem;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    border-radius: var(--radius-sm);
+    min-height: 48px;
+    transition: var(--transition);
+  }
+  .bnav-icon { font-size: 1.15rem; line-height: 1; }
+  .bnav-item.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .bnav-item.active .bnav-icon { transform: scale(1.1); }
+
+  /* Push content above bottom nav. */
+  main { padding-bottom: 90px; }
+
+  /* Bigger tap targets. */
+  .btn { min-height: 44px; padding: 0.7rem 1rem; }
+  .btn.small { min-height: 38px; padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+  .icon-btn { min-height: 40px; min-width: 40px; padding: 0.5rem; }
+  .filter-chip { min-height: 36px; padding: 0.5rem 0.85rem; }
+
+  /* Comfortable reading. */
+  .text-body { font-size: 1.16rem; line-height: 1.85; padding: 1.2rem 0.2rem; }
+  .reader-head h2 { font-size: 1.55rem; }
+
+  /* TTS bar — primary always visible, secondary hidden by default, expanded on tap. */
+  .tts-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.65rem 0.7rem;
+    gap: 0.5rem;
+  }
+  .tts-primary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .tts-primary .btn { flex: 1; min-width: 0; min-height: 44px; padding: 0.6rem 0.4rem; }
+  .tts-secondary {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+  }
+  .tts-secondary.open { display: flex; }
+  .tts-secondary label { width: 100%; }
+  .tts-secondary .spacer { display: none; }
+  .tts-secondary .input { padding: 0.55rem; }
+
+  /* Level switch — tighter so all 6 fit on a phone. */
+  .level-switch { padding: 3px; }
+  .level-switch button { padding: 0.55rem 0.6rem; font-size: 0.78rem; }
+
+  /* Reader head stacks vertically. */
+  .reader-head { flex-direction: column; align-items: stretch; gap: 0.7rem; }
+  .meta { justify-content: flex-start; }
+
+  /* Modal — full-screen on phones. */
+  .modal { padding: 0; }
+  .modal-card {
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    padding: 1.2rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom));
+  }
+
+  /* Browse cards narrower; carousels still snap nicely. */
+  .browse-row-scroll .browse-card { flex: 0 0 76vw; max-width: 320px; }
+  .browse-card-thumb { height: 130px; }
+  .browse-row-title { font-size: 1rem; }
+  .browse-card-title { font-size: 1rem; }
+  .browse-card-excerpt { font-size: 0.82rem; }
+
+  /* Card padding lighter so content breathes. */
+  .card { padding: 1.2rem 1rem; border-radius: var(--radius-lg); }
+
+  /* Hide TTS toggle on desktop, show on mobile. */
+  .tts-toggle { display: inline-flex !important; }
+
+  /* Section heads stack. */
+  .section-head { flex-direction: column; align-items: stretch; }
+
+  /* Admin q-row — actions wrap to next line. */
+  .admin-q-list .aq-row { flex-direction: column; align-items: stretch; }
+  .admin-q-list .aq-actions { justify-content: flex-end; }
+
+  /* Pronunciation modal — adjust for full-screen. */
+  .pr-sentence { font-size: 1.15rem; padding: 1rem; }
+
+  /* Stat cards smaller. */
+  .stat-card { padding: 0.85rem 0.7rem; }
+  .stat-value { font-size: 1.9rem; }
+  .stat-icon { font-size: 1.25rem; }
+
+  /* SRS rating buttons stay 4-wide but compact. */
+  .srs-ratings { gap: 0.35rem; }
+  .srs-ratings .btn { padding: 0.5rem 0.3rem; font-size: 0.82rem; min-height: 50px; }
+}
+
+/* Tablet — keep things balanced between phone & desktop. */
+@media (min-width: 721px) and (max-width: 980px) {
+  .browse-row-scroll .browse-card { flex: 0 0 260px; }
+}
+
+/* TTS toggle button hidden on desktop. */
+.tts-toggle { display: none; }
+
+/* ============================================================
    Reduced motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {

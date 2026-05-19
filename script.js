@@ -1112,6 +1112,7 @@ function ensureDictEntryFor(word, language, level, sourceTextId) {
 function showView(name) {
   $$('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
   $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  $$('.bnav-item').forEach(t => t.classList.toggle('active', t.dataset.view === name));
   if (name === 'vocab') renderVocab();
   if (name === 'dictionary') renderDictionary();
   if (name === 'admin') renderAdmin();
@@ -2606,10 +2607,25 @@ document.addEventListener('DOMContentLoaded', () => {
   loadState();
   applyTheme();
 
-  // Tabs
+  // Tabs (desktop) + bottom nav (mobile) share the same handler.
   $('#mainTabs').addEventListener('click', e => {
     const t = e.target.closest('.tab'); if (t) showView(t.dataset.view);
   });
+  $('#bottomNav').addEventListener('click', e => {
+    const t = e.target.closest('.bnav-item');
+    if (t) { showView(t.dataset.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  });
+
+  // TTS "⚙ More" toggle for mobile-collapsed secondary controls.
+  const ttsToggle = $('#ttsToggleMore');
+  if (ttsToggle) {
+    ttsToggle.addEventListener('click', () => {
+      const sec = $('#ttsSecondary');
+      const isOpen = sec.classList.toggle('open');
+      ttsToggle.setAttribute('aria-expanded', String(isOpen));
+      ttsToggle.textContent = isOpen ? '✕ Mniej' : '⚙ Więcej';
+    });
+  }
 
   // Language select
   $('#langSelect').value = state.settings.language;
