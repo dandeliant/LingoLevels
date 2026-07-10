@@ -2,8 +2,20 @@
 <html lang="pl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>LingoLevels — Language Learning</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#faf6ed" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0d0628" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LingoLevels" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" />
@@ -38,6 +50,7 @@
   </nav>
 
   <div class="top-actions">
+    <button id="installAppBtn" class="btn small primary" hidden title="Install app to your device">⬇ Zainstaluj</button>
     <label class="lang-pick">
       <span class="lbl">Language</span>
       <select id="langSelect">
@@ -598,5 +611,35 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+  // Register service worker (PWA / offline shell).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
+  // "Install app" button — appears when the browser fires beforeinstallprompt
+  // (Chrome/Edge/Android). Safari/iOS users install via Share → Add to Home Screen.
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn = document.getElementById('installAppBtn');
+    if (btn) btn.hidden = false;
+  });
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('#installAppBtn');
+    if (!btn || !deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    btn.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => {
+    const btn = document.getElementById('installAppBtn');
+    if (btn) btn.hidden = true;
+  });
+</script>
 </body>
 </html>

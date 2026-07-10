@@ -1,0 +1,27 @@
+{
+  "name": "LingoLevels — Language Learning",
+  "short_name": "LingoLevels",
+  "description": "Adaptive CEFR reader with TTS, spaced-repetition vocabulary, quizzes and progress tracking.",
+  "lang": "pl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf6ed",
+  "theme_color": "#d97706",
+  "categories": ["education", "productivity", "books"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
